@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 数据源 -->
+    <context:property-placeholder location="classpath:db.properties"/>
+
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${jdbc.driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+
+    <!--事务管理-->
+    <bean id="dataSourceTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- 基于注解的事务管理 -->
+    <tx:annotation-driven transaction-manager="dataSourceTransactionManager"/>
+
+    <!-- 配置SqlSessionFactoryBean
+        MyBatis提供的：org.mybatis.spring.SqlSessionFactoryBean
+        MP提供的：com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean
+    -->
+    <bean id="sqlSessionFactoryBean" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+        <!-- 别名处理 -->
+        <property name="typeAliasesPackage" value="com.atguigu.mp.beans"/>
+        <!-- 注入全局MP策略配置 -->
+        <property name="globalConfig" ref="globalConfig" />
+        <!-- 注入拦截器 -->
+        <property name="plugins">
+            <array>
+                <ref bean="mpInterceptors" />
+            </array>
+        </property>
+    </bean>
+    <!--<bean class="com.baomidou.mybatisplus.core.MybatisConfiguration">
+        <property name="mapUnderscoreToCamelCase" value="true" />
+    </bean>-->
+    <!-- 定义MyBatisPlus的全局策略配置 -->
+    <bean id="globalConfig" class="com.baomidou.mybatisplus.core.config.GlobalConfig">
+        <property name="dbConfig" ref="dbConfig" />
+        <!-- 自定义全局操作 -->
+        <!--<property name="sqlInjector" ref="mySqlInjector" />-->
+        <!-- 注入公共字段填充处理器 -->
+        <property name="metaObjectHandler" ref="myMetaObjectHandler" />
+    </bean>
+    <bean id="dbConfig" class="com.baomidou.mybatisplus.core.config.GlobalConfig$DbConfig">
+        <!-- 全局的主键策略 -->
+        <property name="idType" value="AUTO" />
+        <!-- 全局的表前缀策略配置 -->
+        <property name="tablePrefix" value="tbl_" />
+        <!-- 逻辑删除全局配置 -->
+        <property name="logicDeleteValue" value="0" />
+        <property name="logicNotDeleteValue" value="1" />
+    </bean>
+    <!-- 拦截器 -->
+    <bean id="mpInterceptors" class="com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor">
+        <property name="interceptors">
+            <list>
+                <!-- 分页查询 -->
+                <bean class="com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor" />
+                <!-- 注册执行分析插件 -->
+                <!--<bean class="com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor" />-->
+                <!-- 注册性能分析插件 -->
+                <!--<bean class="com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor" />-->
+                <!-- 注册乐观锁插件 -->
+                <bean class="com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor" />
+            </list>
+        </property>
+    </bean>
+
+    <!-- 定义自定义注入器 -->
+    <bean id="mySqlInjector" class="com.atguigu.mp.injector.MyInjector" />
+
+    <!-- 注入公共字段填充处理器 -->
+    <bean id="myMetaObjectHandler" class="com.atguigu.mp.metaObjectHandler.MyMetaObjectHandler" />
+
+    <!--配置mybatis扫描mapper接口的路径-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.atguigu.mp.mapper"/>
+    </bean>
+</beans>
